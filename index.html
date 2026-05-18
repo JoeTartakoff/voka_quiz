@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>단어 시험</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+    :root {
+      --bg: #f5f3ef;
+      --card: #ffffff;
+      --primary: #2d4a3e;
+      --accent: #e8a838;
+      --danger: #c0392b;
+      --success: #27ae60;
+      --text: #1a1a1a;
+      --muted: #888;
+      --border: #e0dbd0;
+      --shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* ══ 홈 ══ */
+    #homeScreen { max-width: 640px; margin: 0 auto; padding: 52px 24px; }
+    .home-header { text-align: center; margin-bottom: 36px; }
+    .home-header h1 { font-size: 2.2rem; font-weight: 700; color: var(--primary); letter-spacing: -0.5px; }
+    .home-header p { color: var(--muted); margin-top: 8px; font-size: 0.95rem; }
+
+    .card { background: var(--card); border-radius: 16px; box-shadow: var(--shadow); padding: 28px; margin-bottom: 16px; }
+    .card-label { font-size: 0.78rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+
+    /* 입력 탭 */
+    .input-tabs { display: flex; border-radius: 10px; overflow: hidden; border: 1.5px solid var(--border); margin-bottom: 16px; }
+    .input-tab {
+      flex: 1; padding: 10px; text-align: center; font-size: 0.88rem; font-weight: 600;
+      cursor: pointer; background: var(--bg); color: var(--muted);
+      font-family: 'Noto Sans KR', sans-serif; border: none; transition: all 0.15s;
+    }
+    .input-tab.active { background: var(--primary); color: white; }
+    .input-tab:first-child { border-right: 1.5px solid var(--border); }
+
+    .input-panel { display: none; }
+    .input-panel.active { display: block; }
+
+    /* 텍스트 붙여넣기 */
+    textarea {
+      width: 100%; min-height: 180px; padding: 14px;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;
+      color: var(--text); background: #fafaf8; resize: vertical;
+      outline: none; transition: border-color 0.15s; line-height: 1.7;
+    }
+    textarea:focus { border-color: var(--primary); }
+    .paste-hint { font-size: 0.78rem; color: var(--muted); margin-top: 8px; line-height: 1.6; }
+    .paste-hint code { background: #f0ede8; padding: 1px 5px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; }
+
+    /* 파일 업로드 */
+    .upload-area {
+      border: 2px dashed var(--border); border-radius: 10px; padding: 28px;
+      text-align: center; cursor: pointer; transition: all 0.2s; position: relative;
+    }
+    .upload-area:hover { border-color: var(--primary); background: #f9f8f5; }
+    .upload-area.has-file { border-color: var(--success); border-style: solid; background: #f0faf4; }
+    .upload-area input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .upload-icon { font-size: 2rem; margin-bottom: 8px; }
+    .upload-text { font-size: 0.92rem; color: var(--muted); }
+    .upload-filename { font-size: 0.88rem; color: var(--success); font-weight: 600; margin-top: 6px; }
+
+    /* 단어 미리보기 */
+    .preview-box { background: #f5f3ef; border-radius: 10px; padding: 14px 16px; margin-top: 14px; max-height: 130px; overflow-y: auto; display: none; }
+    .preview-box.show { display: block; }
+    .preview-count { font-weight: 700; color: var(--primary); margin-bottom: 8px; font-size: 0.85rem; }
+    .preview-items { display: flex; flex-wrap: wrap; gap: 6px; }
+    .preview-tag { background: white; border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; font-size: 0.78rem; white-space: nowrap; }
+
+    /* 모드 선택 */
+    .mode-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .mode-btn {
+      display: flex; flex-direction: column; align-items: center; padding: 16px 10px;
+      border: 2px solid var(--border); border-radius: 12px; background: var(--bg);
+      cursor: pointer; transition: all 0.18s; font-family: 'Noto Sans KR', sans-serif;
+    }
+    .mode-btn:hover { border-color: var(--primary); transform: translateY(-1px); }
+    .mode-btn.active { border-color: var(--primary); background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(45,74,62,0.25); }
+    .mode-icon { font-size: 1.5rem; margin-bottom: 6px; }
+    .mode-name { font-size: 0.82rem; font-weight: 700; }
+    .mode-desc { font-size: 0.72rem; color: var(--muted); margin-top: 3px; text-align: center; line-height: 1.3; }
+    .mode-btn.active .mode-desc { color: rgba(255,255,255,0.75); }
+
+    .btn-start {
+      width: 100%; padding: 16px; background: var(--accent); color: #1a1a1a;
+      border: none; border-radius: 12px; font-size: 1.05rem; font-weight: 700;
+      font-family: 'Noto Sans KR', sans-serif; cursor: pointer; transition: all 0.15s;
+    }
+    .btn-start:hover { background: #d4952e; transform: translateY(-1px); }
+
+    /* ══ 퀴즈 ══ */
+    #quizScreen { padding: 24px; }
+    .quiz-header { max-width: 1100px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .quiz-header h1 { font-size: 1.5rem; color: var(--primary); }
+    .mode-tag { background: var(--primary); color: white; padding: 4px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 600; }
+    .quiz-actions { display: flex; gap: 10px; }
+
+    .btn { padding: 10px 22px; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; transition: all 0.15s; }
+    .btn:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-green { background: var(--success); color: white; }
+    .btn-gray { background: #b2bec3; color: white; }
+    .btn-orange { background: #e67e22; color: white; }
+
+    .quiz-table-wrap { max-width: 1100px; margin: 0 auto; background: var(--card); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: var(--primary); color: white; }
+    th { padding: 13px 14px; font-size: 0.88rem; font-weight: 600; }
+    td { padding: 8px 10px; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+    td:nth-child(odd) { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; background: #fafaf8; font-weight: 600; color: var(--primary); width: 28%; }
+    td:nth-child(even) { width: 22%; }
+    td input { width: 100%; border: none; padding: 7px 8px; font-size: 0.92rem; font-family: 'Noto Sans KR', sans-serif; outline: none; background: transparent; border-radius: 6px; transition: background 0.15s; }
+    td input:focus { background: #f0f7ff; }
+    td.correct { background: #d4edda !important; }
+    td.wrong { background: #fde8e8 !important; }
+    .quiz-bottom { max-width: 1100px; margin: 20px auto 0; text-align: center; }
+
+    /* ══ 결과 ══ */
+    #resultScreen { max-width: 700px; margin: 0 auto; padding: 48px 24px; }
+    .result-header { text-align: center; margin-bottom: 32px; }
+    .result-header h1 { font-size: 1.8rem; color: var(--primary); }
+    .score-card { background: var(--card); border-radius: 16px; box-shadow: var(--shadow); padding: 32px; text-align: center; margin-bottom: 24px; }
+    .score-big { font-size: 3rem; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
+    .score-sub { color: var(--muted); font-size: 0.95rem; }
+    .score-detail { display: flex; gap: 24px; justify-content: center; margin-top: 20px; }
+    .score-item { text-align: center; }
+    .score-num { font-size: 1.6rem; font-weight: 700; }
+    .score-num.ok { color: var(--success); }
+    .score-num.ng { color: var(--danger); }
+    .score-item p { font-size: 0.82rem; color: var(--muted); margin-top: 2px; }
+    .wrong-card { background: var(--card); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; margin-bottom: 24px; }
+    .wrong-card-header { background: #fde8e8; padding: 14px 20px; font-weight: 700; color: var(--danger); font-size: 0.95rem; }
+    .wrong-item { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 12px 20px; border-bottom: 1px solid var(--border); align-items: center; font-size: 0.88rem; }
+    .wrong-item:last-child { border-bottom: none; }
+    .wi-show { font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+    .wi-mine { color: var(--danger); }
+    .wi-correct { color: var(--success); font-weight: 600; }
+    .result-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .all-correct { text-align: center; padding: 32px; color: var(--success); font-size: 1.1rem; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<!-- ══ 홈 ══ -->
+<div id="homeScreen" class="screen active">
+  <div class="home-header">
+    <h1>📚 단어 시험</h1>
+    <p>단어를 입력하고 시험 모드를 선택하세요</p>
+  </div>
+
+  <div class="card">
+    <div class="card-label">📝 단어 입력</div>
+    <div class="input-tabs">
+      <button class="input-tab active" onclick="switchTab('paste')">✏️ 텍스트 붙여넣기</button>
+      <button class="input-tab" onclick="switchTab('file')">📂 CSV 파일</button>
+    </div>
+
+    <div class="input-panel active" id="pastePanel">
+      <textarea id="pasteInput" placeholder="단어와 뜻을 탭(Tab) 또는 쉼표(,)로 구분해서 붙여넣으세요.
+한 줄에 여러 쌍을 넣어도 됩니다.
+
+예시 (탭 구분):
+gut	좋다	der Morgen	아침
+ich	나	du	너
+
+예시 (쉼표 구분):
+apple,사과
+banana,바나나" oninput="previewPaste()"></textarea>
+      <div class="paste-hint">
+        구분자: 탭(<code>Tab</code>) 또는 쉼표(<code>,</code>) 모두 OK &nbsp;·&nbsp; 한 줄에 여러 쌍 가능
+      </div>
+      <div class="preview-box" id="pastePreview">
+        <div class="preview-count" id="previewCount"></div>
+        <div class="preview-items" id="previewItems"></div>
+      </div>
+    </div>
+
+    <div class="input-panel" id="filePanel">
+      <div class="upload-area" id="uploadArea">
+        <input type="file" id="csvFile" accept=".csv" onchange="onFileChange(this)">
+        <div class="upload-icon">📄</div>
+        <div class="upload-text">CSV 파일을 클릭하여 선택</div>
+        <div class="upload-filename" id="filename"></div>
+      </div>
+      <div class="paste-hint" style="margin-top:10px">형식: <code>apple,사과</code> (한 줄에 하나씩)</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">🎯 시험 모드</div>
+    <div class="mode-grid">
+      <button class="mode-btn active" data-mode="mixed" onclick="selectMode(this)">
+        <span class="mode-icon">🔀</span>
+        <span class="mode-name">섞기 모드</span>
+        <span class="mode-desc">단어↔뜻 랜덤 출제</span>
+      </button>
+      <button class="mode-btn" data-mode="meaning" onclick="selectMode(this)">
+        <span class="mode-icon">🇰🇷</span>
+        <span class="mode-name">뜻 맞추기</span>
+        <span class="mode-desc">단어 보고 뜻 입력</span>
+      </button>
+      <button class="mode-btn" data-mode="word" onclick="selectMode(this)">
+        <span class="mode-icon">🔤</span>
+        <span class="mode-name">원어 맞추기</span>
+        <span class="mode-desc">뜻 보고 단어 입력</span>
+      </button>
+    </div>
+  </div>
+
+  <button class="btn-start" onclick="startQuiz()">시험 시작 →</button>
+</div>
+
+<!-- ══ 퀴즈 ══ -->
+<div id="quizScreen" class="screen">
+  <div class="quiz-header">
+    <div style="display:flex;align-items:center;gap:12px">
+      <h1>📝 단어 시험</h1>
+      <span class="mode-tag" id="modeTag"></span>
+    </div>
+    <div class="quiz-actions">
+      <button class="btn btn-green" onclick="gradeQuiz()">✅ 채점하기</button>
+      <button class="btn btn-gray" onclick="goHome()">🏠 처음으로</button>
+    </div>
+  </div>
+  <div class="quiz-table-wrap">
+    <table>
+      <thead><tr id="tableHeader"></tr></thead>
+      <tbody id="quizBody"></tbody>
+    </table>
+  </div>
+  <div class="quiz-bottom">
+    <button class="btn btn-green" onclick="gradeQuiz()" style="margin-top:16px">✅ 채점하기</button>
+  </div>
+</div>
+
+<!-- ══ 결과 ══ -->
+<div id="resultScreen" class="screen">
+  <div class="result-header"><h1>📊 채점 결과</h1></div>
+  <div class="score-card">
+    <div class="score-big" id="scorePct"></div>
+    <div class="score-sub" id="scoreSub"></div>
+    <div class="score-detail">
+      <div class="score-item"><div class="score-num ok" id="correctNum"></div><p>정답</p></div>
+      <div class="score-item"><div class="score-num ng" id="wrongNum"></div><p>오답</p></div>
+    </div>
+  </div>
+  <div class="wrong-card" id="wrongCard"></div>
+  <div class="result-actions">
+    <button class="btn btn-orange" onclick="retryWrong()">🔁 틀린 단어만 다시</button>
+    <button class="btn btn-gray" onclick="goHome()">🏠 처음으로</button>
+  </div>
+</div>
+
+<script>
+  let words = [], questions = [], wrongWords = [];
+  let selectedMode = 'mixed';
+  let activeTab = 'paste';
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    window.scrollTo(0, 0);
+  }
+  function goHome() { showScreen('homeScreen'); }
+
+  function switchTab(tab) {
+    activeTab = tab;
+    document.querySelectorAll('.input-tab').forEach((t, i) => {
+      t.classList.toggle('active', (i === 0 && tab === 'paste') || (i === 1 && tab === 'file'));
+    });
+    document.getElementById('pastePanel').classList.toggle('active', tab === 'paste');
+    document.getElementById('filePanel').classList.toggle('active', tab === 'file');
+  }
+
+  // 탭/쉼표 구분, 한 줄에 여러 쌍 파싱
+  function parseText(text) {
+    const result = [];
+    for (const line of text.trim().split('\n')) {
+      if (!line.trim()) continue;
+      const parts = line.includes('\t')
+        ? line.split('\t').map(s => s.trim()).filter(Boolean)
+        : line.split(',').map(s => s.trim()).filter(Boolean);
+      for (let i = 0; i + 1 < parts.length; i += 2) {
+        if (parts[i] && parts[i + 1]) result.push({ word: parts[i], meaning: parts[i + 1] });
+      }
+    }
+    return result;
+  }
+
+  function previewPaste() {
+    const parsed = parseText(document.getElementById('pasteInput').value);
+    const box = document.getElementById('pastePreview');
+    if (parsed.length === 0) { box.classList.remove('show'); return; }
+    box.classList.add('show');
+    document.getElementById('previewCount').textContent = `✓ ${parsed.length}개 단어 인식됨`;
+    document.getElementById('previewItems').innerHTML =
+      parsed.map(w => `<span class="preview-tag">${w.word} → ${w.meaning}</span>`).join('');
+  }
+
+  function onFileChange(input) {
+    if (input.files[0]) {
+      document.getElementById('uploadArea').classList.add('has-file');
+      document.getElementById('filename').textContent = '✓ ' + input.files[0].name;
+    }
+  }
+
+  function selectMode(btn) {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedMode = btn.dataset.mode;
+  }
+
+  function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
+
+  function startQuiz() {
+    if (activeTab === 'paste') {
+      words = parseText(document.getElementById('pasteInput').value);
+      if (words.length === 0) { alert('단어를 입력해주세요!\n탭 또는 쉼표로 단어와 뜻을 구분하세요.'); return; }
+      buildQuiz();
+    } else {
+      const file = document.getElementById('csvFile').files[0];
+      if (!file) { alert('파일을 먼저 업로드하세요!'); return; }
+      const reader = new FileReader();
+      reader.onload = e => { words = parseText(e.target.result); if (words.length === 0) { alert('단어를 읽을 수 없습니다.'); return; } buildQuiz(); };
+      reader.readAsText(file);
+    }
+  }
+
+  function buildQuiz() {
+    let headerShow, headerAnswer;
+    if (selectedMode === 'meaning') {
+      headerShow = '단어'; headerAnswer = '뜻 (내 답)';
+      questions = shuffle(words).map(w => ({ show: w.word, answer: w.meaning }));
+    } else if (selectedMode === 'word') {
+      headerShow = '뜻'; headerAnswer = '단어 (내 답)';
+      questions = shuffle(words).map(w => ({ show: w.meaning, answer: w.word }));
+    } else {
+      headerShow = '단어 / 뜻'; headerAnswer = '내 답';
+      questions = shuffle(words).map(w => {
+        const sw = Math.random() > 0.5;
+        return { show: sw ? w.word : w.meaning, answer: sw ? w.meaning : w.word };
+      });
+    }
+
+    const modeLabels = { mixed: '🔀 섞기', meaning: '🇰🇷 뜻 맞추기', word: '🔤 원어 맞추기' };
+    document.getElementById('modeTag').textContent = modeLabels[selectedMode];
+    document.getElementById('tableHeader').innerHTML =
+      `<th>${headerShow}</th><th>${headerAnswer}</th><th>${headerShow}</th><th>${headerAnswer}</th>`;
+
+    const tbody = document.getElementById('quizBody');
+    tbody.innerHTML = '';
+    for (let i = 0; i < questions.length; i += 2) {
+      const q1 = questions[i], q2 = questions[i + 1];
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${q1.show}</td><td><input type="text" id="ans-${i}" placeholder="입력..."></td>` +
+        (q2 ? `<td>${q2.show}</td><td><input type="text" id="ans-${i+1}" placeholder="입력..."></td>` : '<td></td><td></td>');
+      tbody.appendChild(tr);
+    }
+    showScreen('quizScreen');
+  }
+
+  function gradeQuiz() {
+    wrongWords = [];
+    questions.forEach((q, i) => {
+      const input = document.getElementById(`ans-${i}`);
+      if (!input) return;
+      const td = input.parentElement;
+      const correct = input.value.trim() === q.answer;
+      td.classList.toggle('correct', correct);
+      td.classList.toggle('wrong', !correct);
+      if (!correct) wrongWords.push({ show: q.show, correct: q.answer, mine: input.value.trim() });
+    });
+    setTimeout(() => showResult(), 900);
+  }
+
+  function showResult() {
+    const total = questions.length, wc = wrongWords.length, cc = total - wc;
+    document.getElementById('scorePct').textContent = Math.round(cc / total * 100) + '%';
+    document.getElementById('scoreSub').textContent = `${total}문제 중`;
+    document.getElementById('correctNum').textContent = cc + '개';
+    document.getElementById('wrongNum').textContent = wc + '개';
+
+    const wcard = document.getElementById('wrongCard');
+    wcard.innerHTML = wc > 0
+      ? '<div class="wrong-card-header">❌ 틀린 단어 목록</div>' +
+        wrongWords.map(w => `<div class="wrong-item"><span class="wi-show">📌 ${w.show}</span><span class="wi-mine">내 답: ${w.mine || '(없음)'}</span><span class="wi-correct">정답: ${w.correct}</span></div>`).join('')
+      : '<div class="all-correct">🎉 모두 정답! 완벽해요!</div>';
+    showScreen('resultScreen');
+  }
+
+  function retryWrong() {
+    if (wrongWords.length === 0) { alert('틀린 단어가 없습니다!'); return; }
+    words = wrongWords.map(w =>
+      selectedMode === 'meaning' ? { word: w.show, meaning: w.correct } :
+      selectedMode === 'word'    ? { word: w.correct, meaning: w.show } :
+                                   { word: w.show, meaning: w.correct }
+    );
+    buildQuiz();
+  }
+</script>
+</body>
+</html>
